@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: demo
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    http {
+        upstream api_backend {
+            server simple-api-service:80;
+        }
+        
+        server {
+            listen 80;
+            server_name localhost;
+            
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+            }
+            
+            location /api/ {
+                proxy_pass http://api_backend/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+            }
+        }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>ArgoCD Demo App</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            button { padding: 12px 24px; margin: 10px; cursor: pointer; background: #007acc; color: white; border: none; border-radius: 4px; }
+            button:hover { background: #005999; }
+            #response { background: #f8f8f8; padding: 20px; margin-top: 20px; border-radius: 4px; border: 1px solid #ddd; }
+            .version { color: #666; font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 ArgoCD Demo Application</h1>
+            <p class="version">Version: v1.0.0 | GitOps with ArgoCD</p>
+            <p>Nginx Frontend mit HTTPBin API Backend</p>
+            
+            <button onclick="testAPI('/api/get')">Test GET</button>
+            <button onclick="testAPI('/api/headers')">Show Headers</button>
+            <button onclick="testAPI('/api/ip')">Get IP</button>
+            <button onclick="testAPI('/api/uuid')">Generate UUID</button>
+            
+            <div id="response"></div>
+        </div>
+        
+        <script>
+            async function testAPI(endpoint) {
+                try {
+                    const response = await fetch(endpoint);
+                    const data = await response.json();
+                    document.getElementById('response').innerHTML = 
+                        '<h3>✅ API Response:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                } catch (error) {
+                    document.getElementById('response').innerHTML = 
+                        '<h3>❌ Error:</h3><p>' + error.message + '</p>';
+                }
+            }
+        </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-frontend
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-frontend
+  template:
+    metadata:
+      labels:
+        app: nginx-frontend
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: demo
+spec:
+  selector:
+    app: nginx-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+  type: NodePort
