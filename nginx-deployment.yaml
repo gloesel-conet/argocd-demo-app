@@ -47,7 +47,7 @@ data:
     </head>
     <body>
         <div class="container">
-            <h1>🚀 ArgoCD Demo Application</h1>
+            <h1>ArgoCD Demo Application</h1>
             <p class="version">Version: v1.0.0 | GitOps with ArgoCD</p>
             <p>Nginx Frontend mit HTTPBin API Backend</p>
             
@@ -65,10 +65,10 @@ data:
                     const response = await fetch(endpoint);
                     const data = await response.json();
                     document.getElementById('response').innerHTML = 
-                        '<h3>✅ API Response:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        '<h3>API Response:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
                 } catch (error) {
                     document.getElementById('response').innerHTML = 
-                        '<h3>❌ Error:</h3><p>' + error.message + '</p>';
+                        '<h3>Error:</h3><p>' + error.message + '</p>';
                 }
             }
         </script>
